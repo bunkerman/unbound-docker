@@ -262,24 +262,28 @@ docker run --name unbound -d \
 
 Due to the restricted environment of the image, it's not possible to just map and access the redis server's socket but need to use a "proxy" container which provides access to both containers, `unbound` as well as `unbound-db`, so there's an additional busybox container providing the socket in an own volume.
 
-Extend your **existing** `docker-compose.yaml` `server:` section with the content of [`this snippet`](https://raw.githubusercontent.com/madnuttah/unbound-docker/main/doc/examples/redis/docker-compose_snippet.yaml). The loading order of the modules is also important, `cachedb` has to be loaded before `iterator`.
+Extend your **existing** `docker-compose.yaml` `server:` section with the content of [`this snippet`](https://raw.githubusercontent.com/madnuttah/unbound-docker/main/doc/examples/redis/docker-compose_snippet.yaml). The loading order of the modules is also important, `cachedb` has to be loaded before `iterator` and after `validator`.
 
 ```
 server:
-  module-config: "cachedb validator iterator"
+  module-config: "validator cachedb iterator"
 ```
 
 Create a new mountpoint like `../unbound-db/`, make it available via `fstab` and place this [`redis.conf`](https://raw.githubusercontent.com/madnuttah/unbound-docker/main/doc/examples/redis/redis.conf) there.
 
 Create a new entry for cachedb in your `unbound.conf` with the content of this [`cachedb.conf`](https://raw.githubusercontent.com/madnuttah/unbound-docker/main/doc/examples/redis/cachedb.conf) or put the file in your `conf.d` directory if you use the structured directories.
 
+If using structured directories, then uncomment the line `include: "/usr/local/unbound/conf.d/*.conf"` [`unbound.conf`](https://raw.githubusercontent.com/madnuttah/unbound-docker/main/unbound/root/usr/local/unbound/unbound.conf)
+
 You can verify the connection to redis in the `unbound.log` or by typing `docker logs unbound` in the shell: 
 
 ```
 ...
-Feb 18 22:01:02 unbound[1:0] notice: init module 1: cachedb
-Feb 18 22:01:02 unbound[1:0] notice: Redis initialization 
-Feb 18 22:01:02 unbound[1:0] notice: Connection to Redis established
+May 26 21:19:49 unbound[1:0] notice: init module 0: validator
+May 26 21:19:49 unbound[1:0] notice: init module 1: cachedb
+May 26 21:19:49 unbound[1:0] notice: Redis initialization
+May 26 21:19:49 unbound[1:0] notice: Connection to Redis established
+May 26 21:19:49 unbound[1:0] notice: init module 2: iterator
 ...
 ```
 
